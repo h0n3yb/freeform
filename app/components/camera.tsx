@@ -1,83 +1,101 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Camera, FlipHorizontal } from "lucide-react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ImagePlus, Upload } from 'lucide-react';
 
-interface CameraComponentProps {
+interface ImageUploadComponentProps {
   onCapture: (imageData: string) => void;
 }
 
-export function CameraComponent({ onCapture }: CameraComponentProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
-  const startCamera = useCallback(async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
-      });
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setError(null);
+
+    if (!file) {
+      return;
     }
-  }, [facingMode]);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
     }
-  }, [stream]);
 
-  const capturePhoto = useCallback(() => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const imageData = canvas.toDataURL("image/jpeg");
-        onCapture(imageData);
-        stopCamera();
-      }
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image size should be less than 10MB');
+      return;
     }
-  }, [onCapture, stopCamera]);
 
-  const toggleCamera = useCallback(() => {
-    stopCamera();
-    setFacingMode(prev => prev === "user" ? "environment" : "user");
-  }, [stopCamera]);
+    // Create preview and convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setPreview(base64String);
+      onCapture(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setPreview(null);
+    setError(null);
+  };
+
+  const triggerFileInput = () => {
+    const input = document.getElementById('image-upload') as HTMLInputElement;
+    if (input) {
+      input.click();
+    }
+  };
 
   return (
     <div className="relative">
-      {!stream ? (
-        <Button onClick={startCamera} className="w-full">
-          <Camera className="mr-2 h-4 w-4" />
-          Start Camera
-        </Button>
+      {error && (
+        <div className="text-red-500 text-sm mb-2">
+          {error}
+        </div>
+      )}
+      
+      {!preview ? (
+        <div className="flex flex-col items-center gap-4">
+          <Button 
+            type="button" 
+            onClick={triggerFileInput}
+            className="w-full cursor-pointer"
+          >
+            <ImagePlus className="mr-2 h-4 w-4" />
+            Select Image
+          </Button>
+          <input
+            id="image-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <p className="text-sm text-muted-foreground text-center">
+            Take a photo or select from your gallery
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full rounded-lg"
-          />
-          <div className="flex gap-2">
-            <Button onClick={capturePhoto} className="flex-1">
-              <Camera className="mr-2 h-4 w-4" />
-              Capture
-            </Button>
-            <Button variant="outline" onClick={toggleCamera}>
-              <FlipHorizontal className="h-4 w-4" />
-            </Button>
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+            <img
+              src={preview}
+              alt="Preview"
+              className="h-full w-full object-cover"
+            />
           </div>
+          <Button type="button" onClick={clearImage} variant="outline" className="w-full">
+            <Upload className="mr-2 h-4 w-4" />
+            Choose Different Image
+          </Button>
         </div>
       )}
     </div>

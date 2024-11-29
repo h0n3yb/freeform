@@ -1,61 +1,87 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { uploadToS3 } from "@/lib/upload";
+import { uploadToS3 } from "@/lib/s3-upload";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
 
-// TODO: Add authentication to get real user ID
-const MOCK_USER_ID = "student1@example.com";
-
 const createPieceSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  classType: z.string().min(1, "Class type is required"),
+  description: z.string().optional(),
+  imageData: z.string().optional(),
   glaze: z.string().min(1, "Glaze preference is required"),
-  imageData: z.string().optional(), // Base64 image data
 });
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     const body = await req.json();
     const validatedData = createPieceSchema.parse(body);
 
     let imageUrl: string | undefined;
 
     if (validatedData.imageData) {
-      // Convert base64 to File object
-      const base64Data = validatedData.imageData.split(",")[1];
-      const mimeType = validatedData.imageData.split(";")[0].split(":")[1];
-      const buffer = Buffer.from(base64Data, "base64");
-      const tempFileName = `piece-${Date.now()}.${mimeType.split("/")[1]}`;
-      
-      // Create a File object from the buffer
-      const file = new File([buffer], tempFileName, { type: mimeType });
-      
-      // Upload to S3
-      imageUrl = await uploadToS3(file);
+      try {
+        imageUrl = await uploadToS3(validatedData.imageData);
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        return NextResponse.json(
+          { error: "Failed to upload image" },
+          { status: 500 }
+        );
+      }
     }
 
-    const piece = await prisma.piece.create({
-      data: {
-        name: validatedData.name,
-        classType: validatedData.classType as any, // TODO: Add proper validation
-        glaze: validatedData.glaze,
-        status: "GREENWARE",
-        studentId: MOCK_USER_ID,
-        ...(imageUrl && {
-          images: {
-            create: {
-              url: imageUrl,
-              type: "PROGRESS",
-            },
+    // Create the piece with transaction to ensure both piece and image are created
+    const piece = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const newPiece = await tx.piece.create({
+        data: {
+          title: validatedData.name,
+          description: validatedData.description,
+          status: "GREENWARE",
+          userId: user.id,
+          glaze: validatedData.glaze,
+        },
+      });
+
+      if (imageUrl) {
+        await tx.image.create({
+          data: {
+            url: imageUrl,
+            pieceId: newPiece.id,
           },
-        }),
-      },
-      include: {
-        images: true,
-      },
+        });
+      }
+
+      return tx.piece.findUnique({
+        where: { id: newPiece.id },
+        include: {
+          images: true,
+        },
+      });
     });
 
     return NextResponse.json(piece);
@@ -76,10 +102,29 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    // TODO: Add authentication to get real user ID
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     const pieces = await prisma.piece.findMany({
       where: {
-        studentId: MOCK_USER_ID,
+        userId: user.id,
       },
       include: {
         images: true,

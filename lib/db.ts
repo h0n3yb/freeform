@@ -1,27 +1,21 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+declare global {
+  var prisma: PrismaClient | undefined
+}
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+export const prisma = globalThis.prisma || new PrismaClient()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
 
-// Re-export types from Prisma
-export type {
-  Piece,
-  PieceStatus,
-  Notification,
-  NotificationType,
-  User,
-  UserRole,
-  Image,
-  ImageType,
-  ClassType,
-  Prisma,
-} from '.prisma/client'; 
+// Re-export everything from @prisma/client
+export * from '@prisma/client'
+
+// Define PieceStatus enum if not already defined in Prisma schema
+export enum PieceStatus {
+  GREENWARE = 'GREENWARE',
+  BISQUED = 'BISQUED',
+  GLAZED = 'GLAZED',
+  COMPLETED = 'COMPLETED',
+  PICKED_UP = 'PICKED_UP'
+} 

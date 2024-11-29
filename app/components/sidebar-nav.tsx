@@ -42,7 +42,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   const routes = items ?? (isInstructor ? instructorRoutes : studentRoutes)
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-background">
+    <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
       <div className="p-6">
         <h2 className="text-lg font-semibold">Pottery Studio</h2>
         <p className="text-sm text-muted-foreground">

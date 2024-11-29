@@ -1,8 +1,33 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useSession, signOut } from "next-auth/react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      if (session) {
+        try {
+          // Force a session update to verify the user still exists
+          await update();
+          router.push("/student");
+        } catch (error) {
+          // If there's an error (user doesn't exist), sign out
+          await signOut({ redirect: false });
+        }
+      }
+    };
+
+    checkSession();
+  }, [session, router, update]);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
       <main className="max-w-4xl w-full text-center space-y-8">
@@ -24,7 +49,7 @@ export default function Home() {
             <p className="text-gray-600">
               Document your pieces, track their progress, and receive notifications when they're ready.
             </p>
-            <Link href="/student">
+            <Link href="/login">
               <Button className="w-full" size="lg">
                 Student Access
               </Button>

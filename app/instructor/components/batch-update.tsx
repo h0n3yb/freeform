@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CameraComponent } from "@/app/components/camera";
+import { ImageUploadComponent } from "@/app/components/camera";
 import { sendNotification } from "@/lib/actions/notifications";
 
 interface BatchUpdateProps {
@@ -28,11 +28,13 @@ interface BatchUpdateProps {
 }
 
 export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: BatchUpdateProps) {
-  const [status, setStatus] = useState<string>();
-  const [location, setLocation] = useState<string>();
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
   const [showCamera, setShowCamera] = useState(false);
-  const [finalPhoto, setFinalPhoto] = useState<string>();
-  const [sendPickupNotification, setSendPickupNotification] = useState(false);
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [sendPickupNotification, setSendPickupNotification] = useState(true);
+  const [finalPhoto, setFinalPhoto] = useState<string | null>(null);
 
   const handleUpdate = async () => {
     try {
@@ -115,7 +117,11 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
                     Take Photo
                   </Button>
                 ) : showCamera ? (
-                  <CameraComponent onCapture={handlePhotoCapture} />
+                  <ImageUploadComponent
+                    onCapture={(imageData) => {
+                      setImageData(imageData);
+                    }}
+                  />
                 ) : (
                   <div className="relative aspect-video">
                     <img 

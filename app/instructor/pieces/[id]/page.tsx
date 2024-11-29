@@ -8,25 +8,24 @@ import { PieceImage } from "@/app/components/piece-image";
 import { LocationPicker } from "@/app/components/location-picker";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import type { Piece, Prisma } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
+import { Piece, PieceStatus } from "@prisma/client";
 
-type PieceWithRelations = Prisma.PieceGetPayload<{
-  include: {
-    images: {
-      select: {
-        id: true;
-        url: true;
-        type: true;
-      };
-    };
-    student: {
-      select: {
-        name: true;
-        email: true;
-      };
-    };
-  };
-}>;
+interface PageProps {
+  params: { id: string };
+}
+
+type PieceWithRelations = Piece & {
+  student: {
+    name: string | null;
+    email: string | null;
+  } | null;
+  images: {
+    id: string;
+    url: string;
+    type: string;
+  }[];
+};
 
 export default function PiecePage() {
   const params = useParams();

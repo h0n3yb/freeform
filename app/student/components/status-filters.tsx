@@ -12,7 +12,7 @@ interface StatusFiltersProps {
 
 export function StatusFilters({ currentStatus, onStatusChange }: StatusFiltersProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5 pb-0.5">
       {ALL_FILTER_STATUSES.map((status) => (
         <Button
           key={status}
@@ -20,7 +20,7 @@ export function StatusFilters({ currentStatus, onStatusChange }: StatusFiltersPr
           size="sm"
           onClick={() => onStatusChange(status)}
           className={cn(
-            "capitalize",
+            "capitalize whitespace-nowrap text-sm",
             currentStatus === status && "pointer-events-none"
           )}
         >

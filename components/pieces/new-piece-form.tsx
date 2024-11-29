@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CameraComponent } from '@/app/components/camera';
+import { Textarea } from '@/components/ui/textarea';
+import { ImageUploadComponent } from '@/app/components/camera';
 import {
   Form,
   FormControl,
@@ -27,17 +28,12 @@ import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  classType: z.string().min(1, 'Class type is required'),
+  description: z.string().optional(),
   glaze: z.string().min(1, 'Glaze preference is required'),
   imageData: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-const classTypes = [
-  'ONE_TIME',
-  'GLAZING',
-] as const;
 
 const glazeTypes = [
   'Clear',
@@ -58,7 +54,7 @@ export function NewPieceForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      classType: '',
+      description: '',
       glaze: '',
     },
   });
@@ -75,20 +71,27 @@ export function NewPieceForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create piece');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create piece');
       }
+
+      const result = await response.json();
 
       toast({
         title: 'Success!',
         description: 'Your piece has been created.',
       });
 
+      // Wait a moment for the toast to be visible
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       router.push('/student');
+      router.refresh();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create piece. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to create piece. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -120,24 +123,17 @@ export function NewPieceForm() {
 
         <FormField
           control={form.control}
-          name="classType"
+          name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Class Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select class type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {classTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Description (Optional)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="A brief description of your piece" 
+                  className="resize-none"
+                  {...field} 
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -168,55 +164,57 @@ export function NewPieceForm() {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="imageData"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Photo</FormLabel>
+        <div className="space-y-4">
+          <FormLabel>Photo</FormLabel>
+          {showCamera ? (
+            <div className="space-y-4">
               <FormControl>
-                <div className="space-y-4">
-                  {field.value ? (
-                    <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-lg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={field.value}
-                        alt="Piece preview"
-                        className="object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="absolute bottom-2 right-2"
-                        onClick={() => {
-                          field.onChange('');
-                          setShowCamera(false);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : showCamera ? (
-                    <CameraComponent onCapture={handleCapture} />
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowCamera(true)}
-                    >
-                      Take Photo
-                    </Button>
-                  )}
-                </div>
+                <ImageUploadComponent
+                  onCapture={(imageData) => {
+                    form.setValue('imageData', imageData);
+                  }}
+                />
               </FormControl>
-              <FormMessage />
-            </FormItem>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCamera(false)}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : form.watch('imageData') ? (
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+              <img
+                src={form.watch('imageData')}
+                alt="Piece preview"
+                className="h-full w-full object-cover"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-2 right-2"
+                onClick={() => form.setValue('imageData', '')}
+              >
+                Remove Photo
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCamera(true)}
+              className="w-full"
+            >
+              Take Photo
+            </Button>
           )}
-        />
+        </div>
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save Piece'}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Creating..." : "Create Piece"}
         </Button>
       </form>
     </Form>
