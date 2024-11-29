@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  role          UserRole       @default(STUDENT)
+  pieces        Piece[]
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+model Piece {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  status        PieceStatus    @default(GREENWARE)
+  classType     ClassType
+  glaze         String?
+  shelfLocation String?
+  images        Image[]
+  student       User           @relation(fields: [studentId], references: [id])
+  studentId     String
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notes         String?
+
+  @@index([studentId])
+  @@index([status])
+  @@index([shelfLocation])
+  @@index([classType])
+}
+
+enum PieceStatus {
+  GREENWARE    // Initial status
+  BISQUED      // After first firing
+  GLAZED       // After glazing
+  COMPLETED    // Ready for pickup
+  PICKED_UP    // After student collects the piece
+}
+
+enum ClassType {
+  ONE_TIME     // Single session class
+  GLAZING      // Glazing workshop
+}
+
+model Image {
+  id        String    @id @default(cuid())
+  url       String
+  piece     Piece     @relation(fields: [pieceId], references: [id])
+  pieceId   String
+  type      ImageType @default(PROGRESS)
+  createdAt DateTime  @default(now())
+
+  @@index([pieceId])
+}
+
+enum ImageType {
+  PROGRESS    // Work in progress photos
+  FINAL       // Completed piece photos
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  pieceId   String
+  piece     Piece           @relation(fields: [pieceId], references: [id])
+  type      NotificationType
+  read      Boolean         @default(false)
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([pieceId])
+  @@index([read])
+  @@index([type])
+}
+
+enum NotificationType {
+  PIECE_COMPLETED    // When piece is ready for pickup
+  READY_FOR_PICKUP   // Reminder notification
+  STATUS_CHANGED     // When piece moves to a new status
+} 

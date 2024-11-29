@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 58 100% 95%;    /* Pearl */
+    --foreground: 209 57% 12%;    /* Ink */
+ 
+    --card: 58 100% 95%;          /* Pearl */
+    --card-foreground: 209 57% 12%; /* Ink */
+ 
+    --popover: 58 100% 95%;       /* Pearl */
+    --popover-foreground: 209 57% 12%; /* Ink */
+ 
+    --primary: 146 34% 24%;       /* Viridian */
+    --primary-foreground: 58 100% 95%; /* Pearl */
+ 
+    --secondary: 108 40% 35%;     /* Chlorophyll */
+    --secondary-foreground: 58 100% 95%; /* Pearl */
+ 
+    --muted: 74 43% 44%;          /* Avocado */
+    --muted-foreground: 209 57% 22%; /* Lighter Ink */
+ 
+    --accent: 62 82% 57%;         /* Chartreuse */
+    --accent-foreground: 209 57% 12%; /* Ink */
+ 
+    --destructive: 0 84% 60%;     /* Keeping original red for clear destructive actions */
+    --destructive-foreground: 58 100% 95%; /* Pearl */
+ 
+    --border: 146 34% 84%;        /* Light Viridian */
+    --input: 146 34% 84%;         /* Light Viridian */
+    --ring: 146 34% 24%;          /* Viridian */
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 209 57% 12%;    /* Ink */
+    --foreground: 58 100% 95%;    /* Pearl */
+ 
+    --card: 209 57% 15%;          /* Slightly lighter Ink */
+    --card-foreground: 58 100% 95%; /* Pearl */
+ 
+    --popover: 209 57% 15%;       /* Slightly lighter Ink */
+    --popover-foreground: 58 100% 95%; /* Pearl */
+ 
+    --primary: 146 34% 34%;       /* Brighter Viridian */
+    --primary-foreground: 58 100% 95%; /* Pearl */
+ 
+    --secondary: 108 40% 45%;     /* Brighter Chlorophyll */
+    --secondary-foreground: 209 57% 12%; /* Ink */
+ 
+    --muted: 74 43% 34%;          /* Darker Avocado */
+    --muted-foreground: 58 100% 85%; /* Dimmed Pearl */
+ 
+    --accent: 62 82% 47%;         /* Darker Chartreuse */
+    --accent-foreground: 209 57% 12%; /* Ink */
+ 
+    --destructive: 0 62.8% 30.6%; /* Keep original dark destructive */
+    --destructive-foreground: 58 100% 95%; /* Pearl */
+ 
+    --border: 209 57% 22%;        /* Lighter Ink */
+    --input: 209 57% 22%;         /* Lighter Ink */
+    --ring: 146 34% 34%;          /* Brighter Viridian */
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
