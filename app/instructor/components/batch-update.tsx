@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ImageUploadComponent } from "@/app/components/camera";
 import { sendNotification } from "@/lib/actions/notifications";
+import { PieceStatus } from "@prisma/client";
 
 interface BatchUpdateProps {
   className?: string;
@@ -29,19 +30,24 @@ interface BatchUpdateProps {
 
 export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: BatchUpdateProps) {
   const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<PieceStatus | "">("");
   const [location, setLocation] = useState<string>("");
   const [showCamera, setShowCamera] = useState(false);
-  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageData, setImageData] = useState<string | undefined>();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [sendPickupNotification, setSendPickupNotification] = useState(true);
-  const [finalPhoto, setFinalPhoto] = useState<string | null>(null);
+  const [finalPhoto, setFinalPhoto] = useState<string | undefined>();
+
+  const handleStatusChange = (value: string) => {
+    setStatus(value as PieceStatus);
+  };
 
   const handleUpdate = async () => {
     try {
       // Update pieces with new status and location
       // TODO: Implement actual batch update
 
-      if (status === "completed" && sendPickupNotification) {
+      if (status === PieceStatus.COMPLETED && sendPickupNotification) {
         // Send pickup notifications
         await Promise.all(
           selectedPieces.map((pieceId) =>
@@ -66,7 +72,7 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
@@ -83,15 +89,15 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={handleStatusChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="greenware">Greenware</SelectItem>
-                <SelectItem value="bisqued">Bisqued</SelectItem>
-                <SelectItem value="glazed">Glazed</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value={PieceStatus.GREENWARE}>Greenware</SelectItem>
+                <SelectItem value={PieceStatus.BISQUED}>Bisqued</SelectItem>
+                <SelectItem value={PieceStatus.GLAZED}>Glazed</SelectItem>
+                <SelectItem value={PieceStatus.COMPLETED}>Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -104,7 +110,7 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
             />
           </div>
 
-          {status === "completed" && (
+          {status === PieceStatus.COMPLETED && (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Final Photo</label>
@@ -118,17 +124,20 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
                   </Button>
                 ) : showCamera ? (
                   <ImageUploadComponent
-                    onCapture={(imageData) => {
-                      setImageData(imageData);
+                    onCapture={(file, previewUrl) => {
+                      setImageFile(file);
+                      setImageData(previewUrl);
                     }}
                   />
-                ) : (
+                ) : finalPhoto ? (
                   <div className="relative aspect-video">
-                    <img 
-                      src={finalPhoto} 
-                      alt="Final piece" 
-                      className="rounded-lg object-cover"
-                    />
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={finalPhoto} 
+                        alt="Final piece" 
+                        className="rounded-lg object-cover w-full h-full"
+                      />
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -138,7 +147,7 @@ export function BatchUpdate({ className, selectedPieces, onUpdateComplete }: Bat
                       Retake
                     </Button>
                   </div>
-                )}
+                ) : null}
               </div>
 
               <div className="flex items-center space-x-2">

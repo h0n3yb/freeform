@@ -1,43 +1,39 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { PieceStatus } from "@/lib/db";
+import { PieceStatus } from "@prisma/client";
 
-interface StatusBadgeProps {
+export interface StatusBadgeProps {
   status: PieceStatus;
   className?: string;
 }
 
-const statusConfig: Record<PieceStatus, { label: string; className: string }> = {
-  GREENWARE: {
+const statusConfig = {
+  [PieceStatus.GREENWARE]: {
     label: "Greenware",
-    className: "bg-slate-100 text-slate-700 hover:bg-slate-100/80",
+    className: "bg-green-100 text-green-800 hover:bg-green-100",
   },
-  BISQUED: {
+  [PieceStatus.BISQUED]: {
     label: "Bisqued",
-    className: "bg-orange-100 text-orange-700 hover:bg-orange-100/80",
+    className: "bg-orange-100 text-orange-800 hover:bg-orange-100",
   },
-  GLAZED: {
+  [PieceStatus.GLAZED]: {
     label: "Glazed",
-    className: "bg-blue-100 text-blue-700 hover:bg-blue-100/80",
+    className: "bg-blue-100 text-blue-800 hover:bg-blue-100",
   },
-  COMPLETED: {
+  [PieceStatus.COMPLETED]: {
     label: "Completed",
-    className: "bg-green-100 text-green-700 hover:bg-green-100/80",
+    className: "bg-purple-100 text-purple-800 hover:bg-purple-100",
   },
-  PICKED_UP: {
+  [PieceStatus.PICKED_UP]: {
     label: "Picked Up",
-    className: "bg-purple-100 text-purple-700 hover:bg-purple-100/80",
+    className: "bg-gray-100 text-gray-800 hover:bg-gray-100",
   },
-};
+} satisfies Record<PieceStatus, { label: string; className: string }>;
 
-const defaultConfig = {
-  label: "Unknown",
-  className: "bg-gray-100 text-gray-700 hover:bg-gray-100/80",
-};
+type StatusConfigKey = keyof typeof statusConfig;
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status] || defaultConfig;
-  
+  const config = statusConfig[status as StatusConfigKey];
   return (
     <Badge
       variant="secondary"

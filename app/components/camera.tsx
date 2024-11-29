@@ -3,14 +3,18 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImagePlus, Upload } from 'lucide-react';
+import { uploadToS3 } from '@/lib/s3-upload';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadComponentProps {
-  onCapture: (imageData: string) => void;
+  onCapture: (file: File, previewUrl: string) => void;
 }
 
 export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,14 +36,31 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
       return;
     }
 
-    // Create preview and convert to base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setPreview(base64String);
-      onCapture(base64String);
-    };
-    reader.readAsDataURL(file);
+    try {
+      setIsUploading(true);
+
+      // Create local preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const previewUrl = reader.result as string;
+        setPreview(previewUrl);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to S3
+      const s3Url = await uploadToS3(file);
+      onCapture(file, s3Url);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+      setError('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const clearImage = () => {
@@ -68,9 +89,10 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
             type="button" 
             onClick={triggerFileInput}
             className="w-full cursor-pointer"
+            disabled={isUploading}
           >
             <ImagePlus className="mr-2 h-4 w-4" />
-            Select Image
+            {isUploading ? 'Uploading...' : 'Select Image'}
           </Button>
           <input
             id="image-upload"
@@ -92,7 +114,13 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
               className="h-full w-full object-cover"
             />
           </div>
-          <Button type="button" onClick={clearImage} variant="outline" className="w-full">
+          <Button 
+            type="button" 
+            onClick={clearImage} 
+            variant="outline" 
+            className="w-full"
+            disabled={isUploading}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Choose Different Image
           </Button>

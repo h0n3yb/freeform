@@ -39,24 +39,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    console.log('Received piece creation request with body:', body);
     const validatedData = createPieceSchema.parse(body);
-
-    let imageUrl: string | undefined;
-
-    if (validatedData.imageData) {
-      try {
-        imageUrl = await uploadToS3(validatedData.imageData);
-      } catch (error) {
-        console.error("Error uploading image:", error);
-        return NextResponse.json(
-          { error: "Failed to upload image" },
-          { status: 500 }
-        );
-      }
-    }
+    console.log('Validated data:', validatedData);
 
     // Create the piece with transaction to ensure both piece and image are created
     const piece = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      console.log('Creating new piece...');
       const newPiece = await tx.piece.create({
         data: {
           title: validatedData.name,
@@ -66,28 +55,37 @@ export async function POST(req: Request) {
           glaze: validatedData.glaze,
         },
       });
+      console.log('Created piece:', newPiece);
 
-      if (imageUrl) {
-        await tx.image.create({
+      if (validatedData.imageData) {
+        console.log('Creating image with URL:', validatedData.imageData);
+        const image = await tx.image.create({
           data: {
-            url: imageUrl,
+            url: validatedData.imageData,
             pieceId: newPiece.id,
           },
         });
+        console.log('Created image:', image);
+      } else {
+        console.log('No image data provided in request');
       }
 
-      return tx.piece.findUnique({
+      const pieceWithImage = await tx.piece.findUnique({
         where: { id: newPiece.id },
         include: {
           images: true,
         },
       });
+      console.log('Final piece with images:', pieceWithImage);
+
+      return pieceWithImage;
     });
 
     return NextResponse.json(piece);
   } catch (error) {
     console.error("Error creating piece:", error);
     if (error instanceof z.ZodError) {
+      console.error("Validation error:", error.errors);
       return NextResponse.json(
         { error: "Invalid request data", details: error.errors },
         { status: 400 }
@@ -122,6 +120,7 @@ export async function GET(req: Request) {
       );
     }
 
+    console.log('Fetching pieces for user:', user.id);
     const pieces = await prisma.piece.findMany({
       where: {
         userId: user.id,
@@ -133,6 +132,13 @@ export async function GET(req: Request) {
         createdAt: "desc",
       },
     });
+    
+    console.log('Found pieces with images:', pieces.map(piece => ({
+      id: piece.id,
+      title: piece.title,
+      imageCount: piece.images.length,
+      imageUrls: piece.images.map(img => img.url)
+    })));
 
     return NextResponse.json(pieces);
   } catch (error) {

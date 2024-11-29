@@ -1,48 +1,65 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/app/components/status-badge";
 import { PieceImage } from "@/app/components/piece-image";
+import type { PieceWithRelations } from "@/types/piece";
 
-// Temporary mock data
-const mockPiece = {
-  id: "1",
-  title: "Sample Piece",
-  description: "Detailed description of the piece",
-  status: "pending" as const,
-  location: "Shelf A1",
-  imageUrl: "https://images.unsplash.com/photo-1555212697-194d092e3b8f",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  studentId: "student1",
-};
-
-export default function PieceDetailsPage() {
+export default function PieceDetailPage() {
   const params = useParams();
-  const pieceId = params.id as string;
+  const [piece, setPiece] = useState<PieceWithRelations | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPiece() {
+      try {
+        const response = await fetch(`/api/pieces/${params.id}`);
+        if (!response.ok) throw new Error('Failed to fetch piece');
+        const data = await response.json();
+        setPiece(data);
+      } catch (error) {
+        console.error('Error fetching piece:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPiece();
+  }, [params.id]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (!piece) return <div>Piece not found</div>;
+
+  const mainImage = piece.images[0]?.url;
 
   return (
     <div className="container py-8">
       <Card>
         <CardHeader>
-          <CardTitle>{mockPiece.title}</CardTitle>
+          <CardTitle>{piece.title}</CardTitle>
           <div className="flex items-center gap-4">
-            <StatusBadge status={mockPiece.status} />
+            <StatusBadge status={piece.status} />
             <span className="text-sm text-muted-foreground">
-              Location: {mockPiece.location}
+              Created {new Date(piece.createdAt).toLocaleDateString()}
             </span>
           </div>
         </CardHeader>
         <CardContent>
-          {mockPiece.imageUrl && (
+          {mainImage && (
             <PieceImage
-              src={mockPiece.imageUrl}
-              alt={mockPiece.title}
-              className="h-64 w-full mb-4"
+              src={mainImage}
+              alt={piece.title}
+              className="h-64 w-full"
             />
           )}
-          <p className="text-muted-foreground">{mockPiece.description}</p>
+          <p className="text-muted-foreground mt-4">{piece.description}</p>
+          {piece.location && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Location: {piece.location}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

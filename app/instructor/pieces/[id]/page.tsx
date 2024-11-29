@@ -1,48 +1,33 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/app/components/status-badge";
 import { PieceImage } from "@/app/components/piece-image";
 import { LocationPicker } from "@/app/components/location-picker";
-import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { prisma } from "@/lib/prisma";
-import { Piece, PieceStatus } from "@prisma/client";
+import type { PieceWithRelations } from "@/types/piece";
 
-interface PageProps {
+interface PieceDetailsPageProps {
   params: { id: string };
 }
 
-type PieceWithRelations = Piece & {
-  student: {
-    name: string | null;
-    email: string | null;
-  } | null;
-  images: {
-    id: string;
-    url: string;
-    type: string;
-  }[];
-};
-
-export default function PiecePage() {
-  const params = useParams();
-  const pieceId = params.id as string;
+export default function PieceDetailsPage({ params }: PieceDetailsPageProps) {
+  const { toast } = useToast();
   const [piece, setPiece] = useState<PieceWithRelations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
-    async function loadPiece() {
+    async function fetchPiece() {
       try {
-        const response = await fetch(`/api/pieces/${pieceId}`);
-        if (!response.ok) throw new Error('Failed to load piece');
+        const response = await fetch(`/api/pieces/${params.id}`);
+        if (!response.ok) throw new Error('Failed to fetch piece');
         const data = await response.json();
         setPiece(data);
       } catch (error) {
+        console.error('Error fetching piece:', error);
         toast({
           title: 'Error',
           description: 'Failed to load piece details',
@@ -53,16 +38,17 @@ export default function PiecePage() {
       }
     }
 
-    loadPiece();
-  }, [pieceId, toast]);
+    fetchPiece();
+  }, [params.id, toast]);
 
-  const handleLocationUpdate = async (newLocation: string) => {
+  const handleLocationChange = async (newLocation: string) => {
+    if (!piece) return;
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/pieces/${pieceId}`, {
+      const response = await fetch(`/api/pieces/${piece.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shelfLocation: newLocation }),
+        body: JSON.stringify({ location: newLocation }),
       });
 
       if (!response.ok) throw new Error('Failed to update location');
@@ -85,71 +71,36 @@ export default function PiecePage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (!piece) return <div>Piece not found</div>;
 
-  if (!piece) {
-    return (
-      <div className="container py-8">
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">Piece not found</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const mainImage = piece.images?.[0]?.url;
 
   return (
     <div className="container py-8">
       <Card>
         <CardHeader>
-          <CardTitle>{piece.name}</CardTitle>
+          <CardTitle>{piece.title}</CardTitle>
           <div className="flex items-center gap-4">
             <StatusBadge status={piece.status} />
             <span className="text-sm text-muted-foreground">
-              By {piece.student.name || piece.student.email}
+              By {piece.student?.name || piece.student?.email || 'Unknown'}
             </span>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {piece.images.length > 0 && (
+        <CardContent>
+          {mainImage && (
             <PieceImage
-              src={piece.images[0].url}
-              alt={piece.name}
+              src={mainImage}
+              alt={piece.title}
               className="h-64 w-full"
             />
           )}
-          {piece.description && (
-            <p className="text-muted-foreground">{piece.description}</p>
-          )}
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Class Type</label>
-              <p className="text-muted-foreground">{piece.classType}</p>
-            </div>
-            {piece.glaze && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Glaze</label>
-                <p className="text-muted-foreground">{piece.glaze}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Location</label>
+          <p className="text-muted-foreground mt-4">{piece.description}</p>
+          <div className="mt-6">
             <LocationPicker
-              currentLocation={piece.shelfLocation || ''}
-              onLocationChange={handleLocationUpdate}
+              currentLocation={piece.location}
+              onLocationChange={handleLocationChange}
               disabled={isUpdating}
             />
           </div>

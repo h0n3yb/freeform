@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUploadComponent } from '@/app/components/camera';
+import { uploadToS3 } from '@/lib/s3-upload';
 import {
   Form,
   FormControl,
@@ -30,7 +31,7 @@ const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   glaze: z.string().min(1, 'Glaze preference is required'),
-  imageData: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -46,7 +47,6 @@ const glazeTypes = [
 
 export function NewPieceForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -56,18 +56,29 @@ export function NewPieceForm() {
       name: '',
       description: '',
       glaze: '',
+      imageUrl: undefined,
     },
   });
 
   const onSubmit = async (data: FormValues) => {
+    console.log('Form data being submitted:', data);
     setIsSubmitting(true);
     try {
+      // Create the piece with the image URL
+      const requestBody = {
+        name: data.name,
+        description: data.description,
+        glaze: data.glaze,
+        imageData: data.imageUrl, // Pass the S3 URL
+      };
+      console.log('Sending request with body:', requestBody);
+
       const response = await fetch('/api/pieces', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -76,6 +87,7 @@ export function NewPieceForm() {
       }
 
       const result = await response.json();
+      console.log('Received response:', result);
 
       toast({
         title: 'Success!',
@@ -97,11 +109,6 @@ export function NewPieceForm() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCapture = (imageData: string) => {
-    form.setValue('imageData', imageData);
-    setShowCamera(false);
   };
 
   return (
@@ -165,52 +172,24 @@ export function NewPieceForm() {
         />
 
         <div className="space-y-4">
-          <FormLabel>Photo</FormLabel>
-          {showCamera ? (
-            <div className="space-y-4">
-              <FormControl>
-                <ImageUploadComponent
-                  onCapture={(imageData) => {
-                    form.setValue('imageData', imageData);
-                  }}
-                />
-              </FormControl>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCamera(false)}
-                className="w-full"
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : form.watch('imageData') ? (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-              <img
-                src={form.watch('imageData')}
-                alt="Piece preview"
-                className="h-full w-full object-cover"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="absolute bottom-2 right-2"
-                onClick={() => form.setValue('imageData', '')}
-              >
-                Remove Photo
-              </Button>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowCamera(true)}
-              className="w-full"
-            >
-              Take Photo
-            </Button>
-          )}
+          <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Photo</FormLabel>
+                <FormControl>
+                  <ImageUploadComponent
+                    onCapture={(file, s3Url) => {
+                      console.log('Image uploaded to S3:', s3Url);
+                      field.onChange(s3Url);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>

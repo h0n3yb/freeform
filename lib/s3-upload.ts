@@ -27,22 +27,44 @@ function parseBase64Image(base64String: string): { mimeType: string; buffer: Buf
   };
 }
 
-export async function uploadToS3(base64Data: string): Promise<string> {
+export async function uploadToS3(file: File): Promise<string> {
   try {
-    const { mimeType, buffer } = parseBase64Image(base64Data);
-    const extension = mimeType.split('/')[1];
-    const key = `pieces/${Date.now()}.${extension}`;
+    console.log('Starting S3 upload for file:', file.name);
+    // Get presigned URL
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+      }),
+    });
 
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME!,
-        Key: key,
-        Body: buffer,
-        ContentType: mimeType,
-      })
-    );
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
+    }
 
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const { presignedUrl, fileUrl } = await response.json();
+    console.log('Received presigned URL:', presignedUrl);
+    console.log('File will be accessible at:', fileUrl);
+
+    // Upload file using presigned URL
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload file');
+    }
+
+    console.log('File successfully uploaded to S3');
+    return fileUrl;
   } catch (error) {
     console.error('Error uploading to S3:', error);
     throw new Error('Failed to upload file');

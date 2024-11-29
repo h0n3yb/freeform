@@ -2,29 +2,41 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { FilterStatus, ALL_FILTER_STATUSES } from "@/types/status";
+import { PieceStatus } from "@prisma/client";
 
-interface StatusFiltersProps {
-  currentStatus: FilterStatus;
-  onStatusChange: (status: FilterStatus) => void;
+const STATUSES = [
+  PieceStatus.GREENWARE,
+  PieceStatus.BISQUED,
+  PieceStatus.GLAZED,
+  PieceStatus.COMPLETED,
+] as const;
+
+export interface StatusFiltersProps {
+  currentStatus: PieceStatus | "all";
+  onStatusChange: (status: PieceStatus | "all") => void;
 }
 
-export function StatusFilters({ currentStatus, onStatusChange }: StatusFiltersProps) {
+export function StatusFilters({
+  currentStatus,
+  onStatusChange,
+}: StatusFiltersProps) {
   return (
-    <div className="flex gap-1.5 pb-0.5">
-      {ALL_FILTER_STATUSES.map((status) => (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant={currentStatus === "all" ? "default" : "outline"}
+        size="sm"
+        onClick={() => onStatusChange("all")}
+      >
+        All
+      </Button>
+      {STATUSES.map((status) => (
         <Button
           key={status}
           variant={currentStatus === status ? "default" : "outline"}
           size="sm"
           onClick={() => onStatusChange(status)}
-          className={cn(
-            "capitalize whitespace-nowrap text-sm",
-            currentStatus === status && "pointer-events-none"
-          )}
         >
-          {status.toLowerCase().replace('_', ' ')}
+          {status.toLowerCase()}
         </Button>
       ))}
     </div>

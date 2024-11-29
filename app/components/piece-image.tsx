@@ -1,9 +1,8 @@
 "use client";
 
+import { useS3Image } from "@/hooks/use-s3-image";
 import Image from "next/image";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface PieceImageProps {
   src: string;
@@ -12,22 +11,35 @@ interface PieceImageProps {
 }
 
 export function PieceImage({ src, alt, className }: PieceImageProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const { url: presignedUrl, isLoading, error } = useS3Image(src);
+
+  if (error) {
+    return (
+      <div className={cn(
+        "flex items-center justify-center bg-muted text-muted-foreground text-sm",
+        className
+      )}>
+        Failed to load image
+      </div>
+    );
+  }
+
+  if (isLoading || !presignedUrl) {
+    return (
+      <div className={cn(
+        "bg-muted animate-pulse",
+        className
+      )} />
+    );
+  }
 
   return (
-    <div className={cn("relative aspect-square", className)}>
-      {isLoading && (
-        <Skeleton className="absolute inset-0" />
-      )}
+    <div className={cn("relative", className)}>
       <Image
-        src={src}
+        src={presignedUrl}
         alt={alt}
         fill
-        className={cn(
-          "object-cover transition-opacity duration-300",
-          isLoading ? "opacity-0" : "opacity-100"
-        )}
-        onLoad={() => setIsLoading(false)}
+        className="object-cover rounded-md"
       />
     </div>
   );

@@ -12,7 +12,6 @@ enum PieceStatus {
   BISQUED
   GLAZED
   COMPLETED
-  PICKED_UP
 }
 
 model User {
@@ -38,12 +37,12 @@ model Piece {
   title         String
   description   String?
   status        PieceStatus @default(GREENWARE)
-  shelfLocation String?
+  location      String?
   glaze         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   userId        String
-  user          User        @relation(fields: [userId], references: [id])
+  student       User        @relation(fields: [userId], references: [id])
   images        Image[]
 
   @@index([userId])
@@ -54,7 +53,7 @@ model Image {
   id        String   @id @default(cuid())
   url       String
   pieceId   String
-  piece     Piece    @relation(fields: [pieceId], references: [id])
+  piece     Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([pieceId])

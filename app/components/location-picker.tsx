@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 
 export interface LocationPickerProps {
-  currentLocation: string;
+  currentLocation: string | null;
   onLocationChange: (location: string) => void;
   disabled?: boolean;
 }
@@ -22,11 +22,13 @@ export function LocationPicker({
 }: LocationPickerProps) {
   // Parse current location into row and column
   const [row, setRow] = useState(() => {
+    if (!currentLocation) return 'A';
     const match = currentLocation.match(/([A-Z]+)(\d+)/);
     return match ? match[1] : 'A';
   });
   
   const [column, setColumn] = useState(() => {
+    if (!currentLocation) return '1';
     const match = currentLocation.match(/([A-Z]+)(\d+)/);
     return match ? match[2] : '1';
   });

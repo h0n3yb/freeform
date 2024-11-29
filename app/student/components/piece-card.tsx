@@ -1,49 +1,50 @@
 "use client";
 
-import Link from "next/link";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { StatusBadge } from "@/app/components/status-badge";
 import { PieceImage } from "@/app/components/piece-image";
-import type { Piece } from "@/types/piece";
+import type { PieceWithRelations } from "@/types/piece";
 
 interface PieceCardProps {
-  piece: Piece;
+  piece: PieceWithRelations;
 }
 
 export function PieceCard({ piece }: PieceCardProps) {
-  const mainImage = piece.images?.[0]?.url;
+  console.log('PieceCard received piece:', {
+    id: piece.id,
+    title: piece.title,
+    images: piece.images,
+    firstImageUrl: piece.images[0]?.url
+  });
+
+  const mainImage = piece.images[0]?.url;
+  console.log('Main image URL:', mainImage);
 
   return (
-    <Card className="overflow-hidden h-full flex flex-col">
-      <Link href={`/student/pieces/${piece.id}`} className="flex flex-col flex-1">
-        <CardHeader className="p-0">
-          {mainImage ? (
-            <PieceImage
-              src={mainImage}
-              alt={piece.title}
-              className="h-32 sm:h-48 w-full object-cover"
-            />
-          ) : (
-            <div className="h-32 sm:h-48 w-full bg-muted flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">No image</span>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="p-3 sm:p-4 flex-1">
-          <CardTitle className="text-base sm:text-lg mb-1 sm:mb-2 line-clamp-1">
-            {piece.title}
-          </CardTitle>
-          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-            {piece.description || "No description"}
+    <Card className="h-full flex flex-col">
+      <div className="relative pt-[100%]">
+        {mainImage && (
+          <PieceImage
+            src={mainImage}
+            alt={piece.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+      </div>
+      <CardContent className="flex-1 p-4">
+        <h3 className="font-semibold text-base mb-1">{piece.title}</h3>
+        {piece.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+            {piece.description}
           </p>
-        </CardContent>
-        <CardFooter className="p-3 sm:p-4 pt-0 flex justify-between items-center">
-          <StatusBadge status={piece.status} className="text-xs sm:text-sm" />
-          <span className="text-xs sm:text-sm text-muted-foreground">
-            {new Date(piece.createdAt).toLocaleDateString()}
-          </span>
-        </CardFooter>
-      </Link>
+        )}
+      </CardContent>
+      <CardFooter className="p-4 pt-0 flex justify-between items-center">
+        <StatusBadge status={piece.status} />
+        <span className="text-sm text-muted-foreground">
+          {new Date(piece.createdAt).toLocaleDateString()}
+        </span>
+      </CardFooter>
     </Card>
   );
 }

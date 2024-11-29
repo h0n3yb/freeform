@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clean existing data
-  await prisma.notification.deleteMany();
   await prisma.image.deleteMany();
   await prisma.piece.deleteMany();
   await prisma.user.deleteMany();
@@ -43,7 +42,6 @@ async function main() {
     users: await prisma.user.count(),
     pieces: await prisma.piece.count(),
     images: await prisma.image.count(),
-    notifications: await prisma.notification.count(),
   });
 }
 

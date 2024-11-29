@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { PrismaClient } from '@prisma/client';
+import type { PieceWithRelations } from "@/types/piece";
 
 interface RouteParams {
   params: { id: string };
 }
 
-type TransactionClient = Omit<
-  PrismaClient,
-  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'
->;
+type TransactionClient = PrismaClient;
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
@@ -20,10 +18,11 @@ export async function GET(request: Request, { params }: RouteParams) {
           select: {
             id: true,
             url: true,
-            type: true,
+            createdAt: true,
+            pieceId: true,
           },
         },
-        student: {
+        user: {
           select: {
             name: true,
             email: true,
@@ -39,7 +38,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json(piece);
+    // Transform the response to match our expected format
+    const { shelfLocation, user, ...rest } = piece;
+    const transformedPiece: PieceWithRelations = {
+      ...rest,
+      student: user,
+      images: piece.images,
+      location: shelfLocation,
+    };
+
+    return NextResponse.json(transformedPiece);
   } catch (error) {
     console.error('Failed to fetch piece:', error);
     return NextResponse.json(
@@ -82,7 +90,7 @@ export async function PATCH(
     const body = await request.json();
     const currentPiece = await prisma.piece.findUnique({
       where: { id: params.id },
-      select: { status: true, studentId: true },
+      select: { status: true, userId: true },
     });
 
     if (!currentPiece) {
@@ -92,59 +100,41 @@ export async function PATCH(
       );
     }
 
-    // Create notification if status is changing
-    const shouldNotify = body.status && body.status !== currentPiece.status;
-    let notificationType: 'PIECE_COMPLETED' | 'STATUS_CHANGED' | null = null;
-
-    if (shouldNotify) {
-      if (body.status === 'COMPLETED') {
-        notificationType = 'PIECE_COMPLETED';
-      } else {
-        notificationType = 'STATUS_CHANGED';
-      }
-    }
-
-    const piece = await prisma.$transaction(async (tx: TransactionClient) => {
-      // Update the piece
-      const updatedPiece = await tx.piece.update({
-        where: { id: params.id },
-        data: {
-          shelfLocation: body.shelfLocation,
-          status: body.status,
-          notes: body.notes,
-        },
-        include: {
-          images: {
-            select: {
-              id: true,
-              url: true,
-              type: true,
-            },
-          },
-          student: {
-            select: {
-              name: true,
-              email: true,
-            },
+    // Update the piece
+    const piece = await prisma.piece.update({
+      where: { id: params.id },
+      data: {
+        shelfLocation: body.location, // Map location to shelfLocation
+        status: body.status,
+      },
+      include: {
+        images: {
+          select: {
+            id: true,
+            url: true,
+            createdAt: true,
+            pieceId: true,
           },
         },
-      });
-
-      // Create notification if needed
-      if (shouldNotify && notificationType) {
-        await tx.notification.create({
-          data: {
-            type: notificationType,
-            userId: currentPiece.studentId,
-            pieceId: params.id,
+        user: {
+          select: {
+            name: true,
+            email: true,
           },
-        });
-      }
-
-      return updatedPiece;
+        },
+      },
     });
 
-    return NextResponse.json(piece);
+    // Transform the response to match our expected format
+    const { shelfLocation, user, ...rest } = piece;
+    const transformedPiece: PieceWithRelations = {
+      ...rest,
+      student: user,
+      images: piece.images,
+      location: shelfLocation,
+    };
+
+    return NextResponse.json(transformedPiece);
   } catch (error) {
     console.error('Failed to update piece:', error);
     return NextResponse.json(
