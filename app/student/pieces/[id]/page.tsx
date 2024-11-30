@@ -55,9 +55,9 @@ export default function PieceDetailPage() {
             />
           )}
           <p className="text-muted-foreground mt-4">{piece.description}</p>
-          {piece.location && (
+          {piece.shelfLocation && (
             <p className="text-sm text-muted-foreground mt-2">
-              Location: {piece.location}
+              Location: {piece.shelfLocation}
             </p>
           )}
         </CardContent>

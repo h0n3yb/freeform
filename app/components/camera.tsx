@@ -82,7 +82,6 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
             id="image-upload"
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleFileChange}
             className="hidden"
           />

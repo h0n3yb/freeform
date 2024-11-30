@@ -32,6 +32,16 @@ export function PieceCard({ piece }: PieceCardProps) {
               {piece.description}
             </p>
           )}
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span>{piece.technique}</span>
+              <span>•</span>
+              <span>{piece.classType.replace('_', ' ').toUpperCase()}</span>
+            </div>
+            {piece.glaze && (
+              <div>Glaze: {piece.glaze}</div>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center p-4 pt-0">
           <StatusBadge status={piece.status} />

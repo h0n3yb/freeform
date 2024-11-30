@@ -27,10 +27,23 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
+const classTypes = [
+  { value: 'workshop', label: 'Workshop (One-Time Class)' },
+  { value: 'course', label: '6-Week Course' },
+  { value: 'private_event', label: 'Private Event' },
+];
+
+const techniques = [
+  { value: 'wheel', label: 'Pottery Wheel' },
+  { value: 'handbuilding', label: 'Handbuilding' },
+];
+
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  glaze: z.string().min(1, 'Glaze preference is required'),
+  classType: z.enum(['workshop', 'course', 'private_event']),
+  technique: z.enum(['wheel', 'handbuilding']),
+  glaze: z.string().optional(),
   imageUrl: z.string().optional(),
 });
 
@@ -50,13 +63,15 @@ export function NewPieceForm() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const [showGlazeField, setShowGlazeField] = useState(true);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       description: '',
-      glaze: '',
+      classType: 'workshop',
+      technique: 'wheel',
     },
   });
 
@@ -70,6 +85,8 @@ export function NewPieceForm() {
       const requestBody = {
         name: data.name,
         description: data.description,
+        classType: data.classType,
+        technique: data.technique,
         glaze: data.glaze,
         imageData: imageUrl, // Include the stored image URL
       };
@@ -150,20 +167,26 @@ export function NewPieceForm() {
 
         <FormField
           control={form.control}
-          name="glaze"
+          name="classType"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Glaze Preference</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Class Format</FormLabel>
+              <Select 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setShowGlazeField(value !== 'course');
+                }}
+                defaultValue={field.value}
+              >
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select glaze type" />
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select class format" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {glazeTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
+                  {classTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -172,6 +195,58 @@ export function NewPieceForm() {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="technique"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Technique</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select technique" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {techniques.map((technique) => (
+                    <SelectItem key={technique.value} value={technique.value}>
+                      {technique.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {showGlazeField && (
+          <FormField
+            control={form.control}
+            name="glaze"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Glaze Preference</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select glaze type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {glazeTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="space-y-4">
           <FormItem>

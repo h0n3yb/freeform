@@ -5,6 +5,7 @@ import { uploadToS3 } from "@/lib/s3-upload";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { PrismaClient, Prisma } from "@prisma/client";
+import type { PieceWithRelations } from "@/types/piece";
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,9 @@ const createPieceSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   imageData: z.string().optional(),
-  glaze: z.string().min(1, "Glaze preference is required"),
+  classType: z.enum(['workshop', 'course', 'private_event']),
+  technique: z.enum(['wheel', 'handbuilding']),
+  glaze: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -49,10 +52,13 @@ export async function POST(req: Request) {
       const newPiece = await tx.piece.create({
         data: {
           title: validatedData.name,
-          description: validatedData.description,
+          description: validatedData.description || null,
           status: "GREENWARE",
           userId: user.id,
-          glaze: validatedData.glaze,
+          classType: validatedData.classType,
+          technique: validatedData.technique,
+          glaze: validatedData.glaze || null,
+          shelfLocation: null,
         },
       });
       console.log('Created piece:', newPiece);
@@ -126,6 +132,12 @@ export async function GET(req: Request) {
         userId: user.id,
       },
       include: {
+        student: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
         images: true,
       },
       orderBy: {
@@ -133,14 +145,23 @@ export async function GET(req: Request) {
       },
     });
     
-    console.log('Found pieces with images:', pieces.map(piece => ({
+    const piecesWithRelations: PieceWithRelations[] = pieces.map(piece => ({
       id: piece.id,
       title: piece.title,
-      imageCount: piece.images.length,
-      imageUrls: piece.images.map(img => img.url)
-    })));
+      description: piece.description,
+      status: piece.status,
+      shelfLocation: piece.shelfLocation,
+      glaze: piece.glaze,
+      classType: piece.classType,
+      technique: piece.technique,
+      createdAt: piece.createdAt,
+      updatedAt: piece.updatedAt,
+      userId: piece.userId,
+      student: piece.student,
+      images: piece.images,
+    }));
 
-    return NextResponse.json(pieces);
+    return NextResponse.json(piecesWithRelations);
   } catch (error) {
     console.error("Error fetching pieces:", error);
     return NextResponse.json(

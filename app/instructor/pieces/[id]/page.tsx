@@ -48,7 +48,7 @@ export default function PieceDetailsPage({ params }: PieceDetailsPageProps) {
       const response = await fetch(`/api/pieces/${piece.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location: newLocation }),
+        body: JSON.stringify({ shelfLocation: newLocation }),
       });
 
       if (!response.ok) throw new Error('Failed to update location');
@@ -99,7 +99,7 @@ export default function PieceDetailsPage({ params }: PieceDetailsPageProps) {
           <p className="text-muted-foreground mt-4">{piece.description}</p>
           <div className="mt-6">
             <LocationPicker
-              currentLocation={piece.location}
+              currentLocation={piece.shelfLocation}
               onLocationChange={handleLocationChange}
               disabled={isUpdating}
             />

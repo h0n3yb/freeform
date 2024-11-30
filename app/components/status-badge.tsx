@@ -23,11 +23,7 @@ const statusConfig = {
   [PieceStatus.COMPLETED]: {
     label: "Completed",
     className: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  },
-  [PieceStatus.PICKED_UP]: {
-    label: "Picked Up",
-    className: "bg-gray-100 text-gray-800 hover:bg-gray-100",
-  },
+  }
 } satisfies Record<PieceStatus, { label: string; className: string }>;
 
 type StatusConfigKey = keyof typeof statusConfig;

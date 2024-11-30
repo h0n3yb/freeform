@@ -14,20 +14,13 @@ export async function GET(request: Request, { params }: RouteParams) {
     const piece = await prisma.piece.findUnique({
       where: { id: params.id },
       include: {
-        images: {
-          select: {
-            id: true,
-            url: true,
-            createdAt: true,
-            pieceId: true,
-          },
-        },
-        user: {
+        student: {
           select: {
             name: true,
             email: true,
           },
         },
+        images: true,
       },
     });
 
@@ -38,16 +31,23 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Transform the response to match our expected format
-    const { shelfLocation, user, ...rest } = piece;
-    const transformedPiece: PieceWithRelations = {
-      ...rest,
-      student: user,
+    const pieceWithRelations: PieceWithRelations = {
+      id: piece.id,
+      title: piece.title,
+      description: piece.description,
+      status: piece.status,
+      shelfLocation: piece.shelfLocation,
+      glaze: piece.glaze,
+      classType: piece.classType,
+      technique: piece.technique,
+      createdAt: piece.createdAt,
+      updatedAt: piece.updatedAt,
+      userId: piece.userId,
+      student: piece.student,
       images: piece.images,
-      location: shelfLocation,
     };
 
-    return NextResponse.json(transformedPiece);
+    return NextResponse.json(pieceWithRelations);
   } catch (error) {
     console.error('Failed to fetch piece:', error);
     return NextResponse.json(
@@ -82,59 +82,43 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
-    const currentPiece = await prisma.piece.findUnique({
-      where: { id: params.id },
-      select: { status: true, userId: true },
-    });
-
-    if (!currentPiece) {
-      return NextResponse.json(
-        { error: 'Piece not found' },
-        { status: 404 }
-      );
-    }
-
-    // Update the piece
-    const piece = await prisma.piece.update({
+    const updatedPiece = await prisma.piece.update({
       where: { id: params.id },
       data: {
-        shelfLocation: body.location, // Map location to shelfLocation
+        shelfLocation: body.location,
         status: body.status,
       },
       include: {
-        images: {
-          select: {
-            id: true,
-            url: true,
-            createdAt: true,
-            pieceId: true,
-          },
-        },
-        user: {
+        student: {
           select: {
             name: true,
             email: true,
           },
         },
+        images: true,
       },
     });
 
-    // Transform the response to match our expected format
-    const { shelfLocation, user, ...rest } = piece;
-    const transformedPiece: PieceWithRelations = {
-      ...rest,
-      student: user,
-      images: piece.images,
-      location: shelfLocation,
+    const pieceWithRelations: PieceWithRelations = {
+      id: updatedPiece.id,
+      title: updatedPiece.title,
+      description: updatedPiece.description,
+      status: updatedPiece.status,
+      shelfLocation: updatedPiece.shelfLocation,
+      glaze: updatedPiece.glaze,
+      classType: updatedPiece.classType,
+      technique: updatedPiece.technique,
+      createdAt: updatedPiece.createdAt,
+      updatedAt: updatedPiece.updatedAt,
+      userId: updatedPiece.userId,
+      student: updatedPiece.student,
+      images: updatedPiece.images,
     };
 
-    return NextResponse.json(transformedPiece);
+    return NextResponse.json(pieceWithRelations);
   } catch (error) {
     console.error('Failed to update piece:', error);
     return NextResponse.json(
