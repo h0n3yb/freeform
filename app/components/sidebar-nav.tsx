@@ -9,21 +9,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { ThemeToggle } from "@/app/components/theme-toggle"
 import {
   GalleryHorizontalEnd,
-  Home,
-  Layers,
-  Settings,
-  Users,
-  LayoutDashboard,
+  Plus,
   type LucideIcon,
 } from "lucide-react"
 
 const Icons: Record<string, LucideIcon> = {
-  home: Home,
   gallery: GalleryHorizontalEnd,
-  layers: Layers,
-  settings: Settings,
-  users: Users,
-  dashboard: LayoutDashboard,
+  plus: Plus,
 }
 
 interface NavItem {
@@ -38,20 +30,16 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   const pathname = usePathname()
-  const isInstructor = pathname.startsWith("/instructor")
-  const routes = items ?? (isInstructor ? instructorRoutes : studentRoutes)
 
   return (
     <div className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
       <div className="p-6">
         <h2 className="text-lg font-semibold">Pottery Studio</h2>
-        <p className="text-sm text-muted-foreground">
-          {isInstructor ? "Instructor Portal" : "Student Portal"}
-        </p>
+        <p className="text-sm text-muted-foreground">Student Portal</p>
       </div>
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-1">
-          {routes.map((route) => {
+          {studentRoutes.map((route) => {
             const Icon = Icons[route.icon]
             return (
               <Button
@@ -82,35 +70,12 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 const studentRoutes: NavItem[] = [
   {
     href: "/student",
-    icon: "dashboard",
-    title: "Dashboard",
-  },
-  {
-    href: "/student/pieces",
     icon: "gallery",
     title: "My Pieces",
   },
-]
-
-const instructorRoutes: NavItem[] = [
   {
-    href: "/instructor",
-    icon: "home",
-    title: "Dashboard",
-  },
-  {
-    href: "/instructor/pieces",
-    icon: "layers",
-    title: "All Pieces",
-  },
-  {
-    href: "/instructor/students",
-    icon: "users",
-    title: "Students",
-  },
-  {
-    href: "/instructor/settings",
-    icon: "settings",
-    title: "Settings",
+    href: "/student/new",
+    icon: "plus",
+    title: "New Piece",
   },
 ]
