@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { ThemeToggle } from "@/app/components/theme-toggle"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { SidebarProvider, useSidebar } from "@/app/contexts/sidebar-context"
 
 const Icons: Record<string, LucideIcon> = {
  gallery: GalleryHorizontalEnd,
@@ -39,24 +40,23 @@ export default function StudentLayout({
 }: {
  children: React.ReactNode
 }) {
- const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+ return (
+   <SidebarProvider>
+     <StudentLayoutContent>{children}</StudentLayoutContent>
+   </SidebarProvider>
+ )
+}
+
+function StudentLayoutContent({
+ children,
+}: {
+ children: React.ReactNode
+}) {
+ const { isSidebarOpen, setIsSidebarOpen } = useSidebar()
  const pathname = usePathname()
 
  return (
    <div className="flex min-h-screen">
-     <Button
-       variant="ghost"
-       size="sm"
-       className="md:hidden fixed top-3 right-3 z-50"
-       onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-     >
-       {isSidebarOpen ? (
-         <X className="h-5 w-5" />
-       ) : (
-         <Menu className="h-5 w-5" />
-       )}
-     </Button>
-
      {isSidebarOpen && (
        <div 
          className="fixed inset-0 bg-background/80 backdrop-blur-sm md:hidden z-30"
@@ -104,7 +104,7 @@ export default function StudentLayout({
      <SidebarNav />
 
      <div className="flex-1">
-       <div className="p-4 md:p-6 md:pl-64">
+       <div className="md:p-6 md:pl-64">
          {children}
        </div>
      </div>

@@ -1,17 +1,19 @@
+// app/student/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { PieceWithRelations } from "@/types/piece";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { StatusFilters } from "./components/status-filters";
 import { PieceCard } from "./components/piece-card";
 import { PieceStatus } from "@/types/piece";
+import { useSidebar } from "@/app/contexts/sidebar-context";
 
 export default function StudentPage() {
+  const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [pieces, setPieces] = useState<PieceWithRelations[]>([]);
@@ -51,12 +53,24 @@ export default function StudentPage() {
     : pieces.filter(piece => piece.status === selectedStatus);
 
   return (
-    <div className="p-4">
-      <div className="mb-4">
+    <div>
+      <div className="flex justify-between items-center p-4">
         <h1 className="text-2xl font-bold">My Pieces</h1>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="md:hidden"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </Button>
       </div>
     
-      <div className="space-y-4">
+      <div className="px-4 space-y-4">
         <StatusFilters
           currentStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
@@ -67,13 +81,16 @@ export default function StudentPage() {
             <p className="text-muted-foreground">No pieces found</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-start">
             {filteredPieces.map((piece) => (
-              <PieceCard key={piece.id} piece={piece} />
+              <PieceCard 
+                key={piece.id} 
+                piece={piece}
+              />
             ))}
           </div>
         )}
       </div>
     </div>
-    );
+  );
 }
