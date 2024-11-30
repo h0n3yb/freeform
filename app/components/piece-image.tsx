@@ -39,7 +39,10 @@ export function PieceImage({ src, alt, className }: PieceImageProps) {
         src={presignedUrl}
         alt={alt}
         fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className="object-cover rounded-md"
+        priority={false}
+        quality={85}
       />
     </div>
   );

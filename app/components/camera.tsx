@@ -11,53 +11,44 @@ interface ImageUploadComponentProps {
 }
 
 export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
-  const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setError(null);
 
     if (!file) {
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Image size should be less than 10MB');
       return;
     }
 
     try {
       setIsUploading(true);
 
-      // Create local preview
+      // Create local preview first
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const previewUrl = reader.result as string;
-        setPreview(previewUrl);
-      };
+      
+      const previewPromise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const previewUrl = reader.result as string;
+          setPreview(previewUrl);
+          resolve(previewUrl);
+        };
+        reader.onerror = reject;
+      });
+
       reader.readAsDataURL(file);
+      await previewPromise;
 
       // Upload to S3
       const s3Url = await uploadToS3(file);
       onCapture(file, s3Url);
     } catch (error) {
-      console.error('Error uploading image:', error);
       toast({
         title: 'Error',
         description: 'Failed to upload image. Please try again.',
         variant: 'destructive',
       });
-      setError('Failed to upload image');
     } finally {
       setIsUploading(false);
     }
@@ -65,7 +56,6 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
 
   const clearImage = () => {
     setPreview(null);
-    setError(null);
   };
 
   const triggerFileInput = () => {
@@ -76,13 +66,7 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
   };
 
   return (
-    <div className="relative">
-      {error && (
-        <div className="text-red-500 text-sm mb-2">
-          {error}
-        </div>
-      )}
-      
+    <div className="relative space-y-4">
       {!preview ? (
         <div className="flex flex-col items-center gap-4">
           <Button 
@@ -92,17 +76,18 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
             disabled={isUploading}
           >
             <ImagePlus className="mr-2 h-4 w-4" />
-            {isUploading ? 'Uploading...' : 'Select Image'}
+            {isUploading ? 'Uploading...' : 'Take Photo'}
           </Button>
           <input
             id="image-upload"
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={handleFileChange}
             className="hidden"
           />
           <p className="text-sm text-muted-foreground text-center">
-            Take a photo or select from your gallery
+            Uses your back camera for photos
           </p>
         </div>
       ) : (
@@ -122,7 +107,7 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
             disabled={isUploading}
           >
             <Upload className="mr-2 h-4 w-4" />
-            Choose Different Image
+            Take Different Photo
           </Button>
         </div>
       )}

@@ -47,6 +47,7 @@ const glazeTypes = [
 
 export function NewPieceForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -56,12 +57,13 @@ export function NewPieceForm() {
       name: '',
       description: '',
       glaze: '',
-      imageUrl: undefined,
     },
   });
 
   const onSubmit = async (data: FormValues) => {
-    console.log('Form data being submitted:', data);
+    console.log('Form submission started with data:', data);
+    console.log('Current image URL:', imageUrl);
+    
     setIsSubmitting(true);
     try {
       // Create the piece with the image URL
@@ -69,7 +71,7 @@ export function NewPieceForm() {
         name: data.name,
         description: data.description,
         glaze: data.glaze,
-        imageData: data.imageUrl, // Pass the S3 URL
+        imageData: imageUrl, // Include the stored image URL
       };
       console.log('Sending request with body:', requestBody);
 
@@ -172,24 +174,18 @@ export function NewPieceForm() {
         />
 
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Photo</FormLabel>
-                <FormControl>
-                  <ImageUploadComponent
-                    onCapture={(file, s3Url) => {
-                      console.log('Image uploaded to S3:', s3Url);
-                      field.onChange(s3Url);
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormItem>
+            <FormLabel>Photo</FormLabel>
+            <FormControl>
+              <ImageUploadComponent
+                onCapture={(file, s3Url) => {
+                  console.log('Image uploaded, received S3 URL:', s3Url);
+                  setImageUrl(s3Url);
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>

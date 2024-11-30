@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -12,9 +11,25 @@ const s3Client = new S3Client({
   },
 });
 
+function parseBase64Image(base64String: string): { mimeType: string; buffer: Buffer } {
+  const [header, base64Data] = base64String.split(',', 2);
+  if (!header || !base64Data) {
+    throw new Error('Invalid image format');
+  }
+
+  const mimeType = header.split(':')[1]?.split(';')[0];
+  if (!mimeType) {
+    throw new Error('Invalid image format');
+  }
+
+  return {
+    mimeType,
+    buffer: Buffer.from(base64Data, 'base64')
+  };
+}
+
 export async function POST(req: Request) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -23,39 +38,34 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get file info from request
-    const { filename, contentType } = await req.json();
-    if (!filename || !contentType) {
+    const body = await req.json();
+    const { filename, contentType, base64Data } = body;
+    
+    if (!filename || !contentType || !base64Data) {
       return NextResponse.json(
-        { error: "Missing filename or content type" },
+        { error: "Invalid request" },
         { status: 400 }
       );
     }
 
-    // Generate unique key
+    const { buffer } = parseBase64Image(base64Data);
     const key = `pieces/${Date.now()}-${filename}`;
 
-    // Create command for S3 upload
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME!,
       Key: key,
+      Body: buffer,
       ContentType: contentType,
     });
 
-    // Generate presigned URL
-    const presignedUrl = await getSignedUrl(s3Client, command, {
-      expiresIn: 3600, // URL expires in 1 hour
-    });
+    await s3Client.send(command);
 
-    // Return the presigned URL and the final URL where the file will be accessible
-    return NextResponse.json({
-      presignedUrl,
-      fileUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
-    });
+    const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+    return NextResponse.json({ fileUrl });
   } catch (error) {
-    console.error("Error generating presigned URL:", error);
     return NextResponse.json(
-      { error: "Failed to generate upload URL" },
+      { error: "Upload failed" },
       { status: 500 }
     );
   }
