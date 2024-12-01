@@ -7,7 +7,7 @@ import { uploadToS3 } from '@/lib/s3-upload';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadComponentProps {
-  onCapture: (file: File, previewUrl: string) => void;
+  onCapture: (file: File, s3Url: string, metadata?: any) => void;
 }
 
 export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
@@ -42,7 +42,33 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
 
       // Upload to S3
       const s3Url = await uploadToS3(file);
-      onCapture(file, s3Url);
+
+      // If feature flag set, call our analyze-image API endpoint
+      if (process.env.ENABLE_AI_PIECE_IMAGE_ANALYSIS == 'true') {
+        try {
+          const response = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: s3Url }),
+          });
+  
+          if (!response.ok) {
+            throw new Error('Failed to analyze image');
+          }
+  
+          const { metadata } = await response.json();
+          console.log('Image analysis response:', metadata);  // Debug log
+  
+          // Pass both the URL and metadata to the parent
+          onCapture(file, s3Url, metadata);
+        } catch (analysisError) {
+          console.error('Image analysis error:', analysisError);
+          // Still continue with the upload even if analysis fails
+          onCapture(file, s3Url);
+        }
+      }
     } catch (error) {
       toast({
         title: 'Error',

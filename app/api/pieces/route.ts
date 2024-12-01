@@ -69,9 +69,11 @@ export async function POST(req: Request) {
           data: {
             url: validatedData.imageData,
             pieceId: newPiece.id,
+            metadata: body.imageMetadata || null,  // Add metadata here
           },
         });
         console.log('Created image:', image);
+        console.log('Image metadata:', body.imageMetadata);  // Debug log for metadata
       } else {
         console.log('No image data provided in request');
       }

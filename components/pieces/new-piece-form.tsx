@@ -64,6 +64,7 @@ export function NewPieceForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [showGlazeField, setShowGlazeField] = useState(true);
+  const [imageMetadata, setImageMetadata] = useState<any>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -253,9 +254,11 @@ export function NewPieceForm() {
             <FormLabel>Photo</FormLabel>
             <FormControl>
               <ImageUploadComponent
-                onCapture={(file, s3Url) => {
+                onCapture={(file, s3Url, metadata) => {
                   console.log('Image uploaded, received S3 URL:', s3Url);
+                  console.log('Groq metadata:', metadata);  // Debug log
                   setImageUrl(s3Url);
+                  setImageMetadata(metadata);
                 }}
               />
             </FormControl>

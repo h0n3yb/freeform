@@ -68,6 +68,7 @@ model Image {
   pieceId   String
   piece     Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  metadata  Json?
 
   @@index([pieceId])
 }
