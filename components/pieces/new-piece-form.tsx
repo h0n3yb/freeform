@@ -180,11 +180,11 @@ export function NewPieceForm() {
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className="bg-background">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select class format" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-gray-950">
                   {classTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -205,11 +205,11 @@ export function NewPieceForm() {
               <FormLabel>Technique</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="bg-background">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select technique" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-gray-950">
                   {techniques.map((technique) => (
                     <SelectItem key={technique.value} value={technique.value}>
                       {technique.label}
@@ -235,7 +235,7 @@ export function NewPieceForm() {
                       <SelectValue placeholder="Select glaze type" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-950">
                     {glazeTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
