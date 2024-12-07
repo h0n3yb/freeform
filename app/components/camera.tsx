@@ -43,8 +43,9 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
       // Upload to S3
       const s3Url = await uploadToS3(file);
 
+      let metadata;
       // If feature flag set, call our analyze-image API endpoint
-      if (process.env.ENABLE_AI_PIECE_IMAGE_ANALYSIS == 'true') {
+      if (process.env.ENABLE_AI_PIECE_IMAGE_ANALYSIS === 'true') {
         try {
           const response = await fetch('/api/analyze-image', {
             method: 'POST',
@@ -58,17 +59,18 @@ export function ImageUploadComponent({ onCapture }: ImageUploadComponentProps) {
             throw new Error('Failed to analyze image');
           }
   
-          const { metadata } = await response.json();
+          const analysisResult = await response.json();
+          metadata = analysisResult.metadata;
           console.log('Image analysis response:', metadata);  // Debug log
-  
-          // Pass both the URL and metadata to the parent
-          onCapture(file, s3Url, metadata);
         } catch (analysisError) {
           console.error('Image analysis error:', analysisError);
-          // Still continue with the upload even if analysis fails
-          onCapture(file, s3Url);
+          // Analysis error is non-blocking
         }
       }
+
+      // Always call onCapture, with or without metadata
+      onCapture(file, s3Url, metadata);
+
     } catch (error) {
       toast({
         title: 'Error',
